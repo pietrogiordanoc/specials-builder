@@ -72,6 +72,7 @@ export default function CampaignBuilder() {
   const [slices, setSlices] = useState<Slice[]>([]);
   const [drawingSlice, setDrawingSlice] = useState<{startX: number; startY: number; currentX: number; currentY: number} | null>(null);
   const campaignRef = useRef<HTMLDivElement>(null);
+  const [savedCampaigns, setSavedCampaigns] = useState<string[]>([]);
 
   // Load library blocks from JSON files on mount
   useEffect(() => {
@@ -149,6 +150,11 @@ export default function CampaignBuilder() {
     }
   }, [blocks, campaignName]);
 
+  // Load saved campaigns list on mount
+  useEffect(() => {
+    loadSavedCampaignsList();
+  }, []);
+
   const exportCampaign = () => {
     // Export only block IDs, not full block data
     const blockIds = blocks.map(b => b.id);
@@ -166,6 +172,11 @@ export default function CampaignBuilder() {
     link.download = `${safeName}.json`;
     link.click();
     URL.revokeObjectURL(url);
+    
+    // Show instructions after download
+    setTimeout(() => {
+      alert(`Campaign exported! 📁\n\nTo save permanently:\n1. Move ${safeName}.json to _CAMPAIGNS/ folder\n2. Add "${safeName}.json" to _CAMPAIGNS/campaigns.json\n3. Reload to see it in "Saved Campaigns" dropdown`);
+    }, 500);
   };
 
   const exportAllBlocks = () => {
@@ -260,6 +271,43 @@ export default function CampaignBuilder() {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Load list of saved campaigns from _CAMPAIGNS folder
+  const loadSavedCampaignsList = async () => {
+    try {
+      const response = await fetch('/_CAMPAIGNS/campaigns.json');
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.campaigns && Array.isArray(data.campaigns)) {
+        setSavedCampaigns(data.campaigns);
+      }
+    } catch (error) {
+      console.error('Error loading campaigns list:', error);
+    }
+  };
+
+  // Load a specific campaign from _CAMPAIGNS folder
+  const loadCampaignFromFolder = async (filename: string) => {
+    try {
+      const response = await fetch(`/_CAMPAIGNS/${filename}`);
+      if (!response.ok) throw new Error('Campaign not found');
+      const imported = await response.json();
+      
+      if (imported.blockIds && Array.isArray(imported.blockIds)) {
+        const loadedBlocks: Block[] = [];
+        for (const blockId of imported.blockIds) {
+          const block = Array.from(blockCache.values()).find(b => b.id === blockId);
+          if (block) {
+            loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
+          }
+        }
+        setBlocks(loadedBlocks);
+        if (imported.name) setCampaignName(imported.name);
+      }
+    } catch (error) {
+      alert(`Error loading campaign: ${error}`);
+    }
   };
 
   const toggleBrand = (brandId: string) => {
@@ -683,6 +731,49 @@ export default function CampaignBuilder() {
               <span style={{ fontSize: 16 }}>📦</span>
               <span>Export All Blocks</span>
             </button>
+
+            {/* Load Saved Campaign */}
+            {savedCampaigns.length > 0 && (
+              <div style={{ width: "100%" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 12,
+                    color: "#64748b",
+                    marginBottom: 6,
+                    fontWeight: 500,
+                  }}
+                >
+                  📁 Saved Campaigns
+                </label>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      loadCampaignFromFolder(e.target.value);
+                    }
+                  }}
+                  defaultValue=""
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "#334155",
+                  }}
+                >
+                  <option value="">Select campaign...</option>
+                  {savedCampaigns.map((filename) => (
+                    <option key={filename} value={filename}>
+                      {filename.replace('.json', '').replace(/-/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             
             <button
               onClick={() => fileInputRef.current?.click()}
