@@ -72,9 +72,9 @@ export default function CampaignBuilder() {
   const [slices, setSlices] = useState<Slice[]>([]);
   const [drawingSlice, setDrawingSlice] = useState<{startX: number; startY: number; currentX: number; currentY: number} | null>(null);
   const campaignRef = useRef<HTMLDivElement>(null);
-  const [savedCampaigns, setSavedCampaigns] = useState<string[]>([]);
   const [libraryLoaded, setLibraryLoaded] = useState(false);
   const [modalContent, setModalContent] = useState<{title: string; message: string; type: 'success' | 'warning' | 'error' | 'info'} | null>(null);
+  const [saveBlockModal, setSaveBlockModal] = useState<{block: Block; brandName: string; blockId: string; imageName: string} | null>(null);
 
   const showModal = (title: string, message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
     setModalContent({ title, message, type });
@@ -82,6 +82,67 @@ export default function CampaignBuilder() {
 
   const closeModal = () => {
     setModalContent(null);
+  };
+
+  const openSaveBlockModal = (block: Block) => {
+    // Extract brand name from imageSrc path if available
+    const pathMatch = block.imageSrc?.match(/_BRANDS\/([^/]+)\//);  const existingBrand = pathMatch ? pathMatch[1] : 'New Brand';
+    const existingId = block.originalId || block.sku || 'NEW-ID';
+    const imageMatch = block.imageSrc?.match(/\/([^/]+\.png)$/i);
+    const existingImage = imageMatch ? imageMatch[1] : `${existingId}.png`;
+    
+    setSaveBlockModal({
+      block,
+      brandName: existingBrand,
+      blockId: existingId,
+      imageName: existingImage,
+    });
+  };
+
+  const closeSaveBlockModal = () => {
+    setSaveBlockModal(null);
+  };
+
+  const saveBlockAsNew = () => {
+    if (!saveBlockModal) return;
+    
+    const { block, brandName, blockId, imageName } = saveBlockModal;
+    
+    // Create clean block data
+    const newBlock = {
+      id: blockId,
+      title: block.title,
+      sku: blockId,
+      imageSrc: `/_BRANDS/${brandName}/${imageName}`,
+      imageOffsetX: block.imageOffsetX || 0,
+      imageOffsetY: block.imageOffsetY || 0,
+      imageScale: block.imageScale || 1,
+      price: block.price || '$0.00',
+      packSize: block.packSize || '',
+      description: block.description || '',
+      template: block.template || 'zig_product',
+      visible: true,
+    };
+    
+    // Export as JSON
+    const dataStr = JSON.stringify(newBlock, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${blockId}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    closeSaveBlockModal();
+    
+    setTimeout(() => {
+      showModal(
+        'Block Saved! 💾',
+        `File: ${blockId}.json\n\nNext steps:\n\n1. Move ${blockId}.json to:\n   _BRANDS/${brandName}/\n\n2. Add image ${imageName} to same folder\n\n3. Update src/data/library.json:\n   Add "${brandName}/${blockId}.json" to brand's blockFiles\n\n4. Reload browser (F5)`,
+        'success'
+      );
+    }, 300);
   };
 
   // Load library blocks from JSON files on mount
@@ -117,7 +178,7 @@ export default function CampaignBuilder() {
             // Find block in cache by ID
             const block = Array.from(blockCache.values()).find(b => b.id === blockId);
             if (block) {
-              loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
+              loadedBlocks.push({ ...block, originalId: block.id, id: `block-${Date.now()}-${Math.random()}` });
             }
           }
           setBlocks(loadedBlocks);
@@ -134,7 +195,7 @@ export default function CampaignBuilder() {
             for (const blockId of parsed.blocks) {
               const block = Array.from(blockCache.values()).find(b => b.id === blockId);
               if (block) {
-                loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
+                loadedBlocks.push({ ...block, originalId: block.id, id: `block-${Date.now()}-${Math.random()}` });
               }
             }
             setBlocks(loadedBlocks);
@@ -162,17 +223,15 @@ export default function CampaignBuilder() {
     }
   }, [blocks, campaignName]);
 
-  // Load saved campaigns list on mount
-  useEffect(() => {
-    loadSavedCampaignsList();
-  }, []);
-
   const exportCampaign = () => {
-    // Export only block IDs, not full block data
-    const blockIds = blocks.map(b => b.id);
+    // Export full block data with all modifications
     const campaign = {
       name: campaignName,
-      blockIds: blockIds,
+      blocks: blocks.map(b => ({
+        ...b,
+        // Keep originalId for reference, remove temporary canvas id
+        id: b.originalId || b.id,
+      })),
       exportedAt: new Date().toISOString(),
     };
     const dataStr = JSON.stringify(campaign, null, 2);
@@ -189,7 +248,7 @@ export default function CampaignBuilder() {
     setTimeout(() => {
       showModal(
         'Campaign Exported! 📁',
-        `File downloaded: ${safeName}.json\n\nTo save permanently:\n\n1. Move ${safeName}.json to _CAMPAIGNS/ folder\n\n2. Open _CAMPAIGNS/campaigns.json and add:\n   "${safeName}.json"\n\n3. Reload browser to see it in dropdown`,
+        `File downloaded: ${safeName}.json\n\nYour campaign with all block modifications has been saved.\n\nTo load it later, click "Open from File" and select this JSON file.`,
         'success'
       );
     }, 500);
@@ -280,19 +339,34 @@ export default function CampaignBuilder() {
         const imported = JSON.parse(e.target?.result as string);
         
         console.log('Importing campaign:', imported);
-        console.log('Block cache size:', blockCache.size);
-        console.log('Block cache contents:', Array.from(blockCache.entries()).map(([path, block]) => ({ path, id: block.id })));
         
-        // New format with blockIds
-        if (imported.blockIds && Array.isArray(imported.blockIds)) {
-          // Load blocks from cache by ID
+        // New format with full blocks data
+        if (imported.blocks && Array.isArray(imported.blocks)) {
+          // Load blocks directly with new canvas IDs
+          const loadedBlocks: Block[] = imported.blocks.map((block: any) => ({
+            ...block,
+            originalId: block.id,
+            id: `block-${Date.now()}-${Math.random()}`,
+          }));
+          
+          setBlocks(loadedBlocks);
+          if (imported.name) setCampaignName(imported.name);
+          
+          showModal(
+            'Campaign Loaded!',
+            `Successfully imported ${loadedBlocks.length} block(s) with all modifications.`,
+            'success'
+          );
+        }
+        // Legacy format with blockIds (for backwards compatibility)
+        else if (imported.blockIds && Array.isArray(imported.blockIds)) {
           const loadedBlocks: Block[] = [];
           const notFound: string[] = [];
           
           for (const blockId of imported.blockIds) {
             const block = Array.from(blockCache.values()).find(b => b.id === blockId);
             if (block) {
-              loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
+              loadedBlocks.push({ ...block, originalId: block.id, id: `block-${Date.now()}-${Math.random()}` });
               console.log(`Found block ${blockId}`);
             } else {
               notFound.push(blockId);
@@ -334,79 +408,6 @@ export default function CampaignBuilder() {
     event.target.value = '';
   };
 
-  // Load list of saved campaigns from _CAMPAIGNS folder
-  const loadSavedCampaignsList = async () => {
-    try {
-      const response = await fetch('/_CAMPAIGNS/campaigns.json');
-      if (!response.ok) return;
-      const data = await response.json();
-      if (data.campaigns && Array.isArray(data.campaigns)) {
-        setSavedCampaigns(data.campaigns);
-      }
-    } catch (error) {
-      console.error('Error loading campaigns list:', error);
-    }
-  };
-
-  // Load a specific campaign from _CAMPAIGNS folder
-  const loadCampaignFromFolder = async (filename: string) => {
-    if (!libraryLoaded) {
-      showModal(
-        'Please Wait',
-        'Library is still loading...\n\nTry again in a few seconds.',
-        'info'
-      );
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/_CAMPAIGNS/${filename}`);
-      if (!response.ok) throw new Error('Campaign not found');
-      const imported = await response.json();
-      
-      console.log('Loading campaign from folder:', filename);
-      console.log('Campaign data:', imported);
-      
-      if (imported.blockIds && Array.isArray(imported.blockIds)) {
-        const loadedBlocks: Block[] = [];
-        const notFound: string[] = [];
-        
-        for (const blockId of imported.blockIds) {
-          const block = Array.from(blockCache.values()).find(b => b.id === blockId);
-          if (block) {
-            loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
-            console.log(`Found block ${blockId}`);
-          } else {
-            notFound.push(blockId);
-            console.warn(`Block not found: ${blockId}`);
-          }
-        }
-        
-        if (notFound.length > 0) {
-          showModal(
-            'Some Blocks Missing',
-            `Missing blocks: ${notFound.join(', ')}\n\nMake sure all blocks are in _BRANDS/ folder.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`,
-            'warning'
-          );
-        }
-        
-        setBlocks(loadedBlocks);
-        if (imported.name) setCampaignName(imported.name);
-        
-        if (loadedBlocks.length > 0) {
-          showModal(
-            'Campaign Loaded!',
-            `"${imported.name || filename}"\n\nSuccessfully imported ${loadedBlocks.length} blocks.`,
-            'success'
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Load campaign error:', error);
-      showModal('Load Error', `Could not load campaign.\n\nError: ${error}`, 'error');
-    }
-  };
-
   const toggleBrand = (brandId: string) => {
     setExpandedBrands((prev) => {
       const newSet = new Set(prev);
@@ -431,6 +432,7 @@ export default function CampaignBuilder() {
     
     const newBlock: Block = {
       ...libraryBlock,
+      originalId: libraryBlock.id,
       id: `block-${Date.now()}-${Math.random()}`,
     };
     setBlocks([...blocks, newBlock]);
@@ -461,6 +463,7 @@ export default function CampaignBuilder() {
       
       const newBlock: Block = {
         ...draggedLibraryBlock,
+        originalId: draggedLibraryBlock.id,
         id: `block-${Date.now()}-${Math.random()}`,
       };
       console.log('New block created with imageSrc:', newBlock.imageSrc);
@@ -828,94 +831,6 @@ export default function CampaignBuilder() {
               <span style={{ fontSize: 16 }}>📦</span>
               <span>Export All Blocks</span>
             </button>
-
-            {/* Load Saved Campaign */}
-            <div style={{ width: "100%" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 12,
-                    color: "#64748b",
-                    fontWeight: 500,
-                  }}
-                >
-                  📁 Saved Campaigns
-                </label>
-                <button
-                  onClick={() => {
-                    loadSavedCampaignsList();
-                    showModal('Refreshed', 'Campaign list reloaded!', 'success');
-                  }}
-                  style={{
-                    padding: "4px 8px",
-                    background: "#f1f5f9",
-                    color: "#64748b",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontSize: 11,
-                    fontWeight: 500,
-                    transition: "all 0.2s",
-                  }}
-                  title="Refresh campaign list"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#e2e8f0";
-                    e.currentTarget.style.color = "#475569";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#f1f5f9";
-                    e.currentTarget.style.color = "#64748b";
-                  }}
-                >
-                  🔄 Refresh
-                </button>
-              </div>
-              {savedCampaigns.length > 0 ? (
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      loadCampaignFromFolder(e.target.value);
-                      e.target.value = ''; // Reset after loading
-                    }
-                  }}
-                  defaultValue=""
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "#334155",
-                  }}
-                >
-                  <option value="">Select campaign...</option>
-                  {savedCampaigns.map((filename) => (
-                    <option key={filename} value={filename}>
-                      {filename.replace('.json', '').replace(/-/g, ' ')}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    background: "#f8fafc",
-                    border: "1px dashed #e2e8f0",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: "#94a3b8",
-                    textAlign: "center",
-                  }}
-                >
-                  No saved campaigns yet
-                </div>
-              )}
-            </div>
             
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -1229,6 +1144,39 @@ export default function CampaignBuilder() {
                     <div>⋮</div>
                     <div>⋮</div>
                   </div>
+                  <button
+                    onClick={() => openSaveBlockModal(block)}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 14,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                      transition: "all 0.2s",
+                      marginBottom: 4,
+                    }}
+                    title="Save as new block"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#10b981";
+                      e.currentTarget.style.borderColor = "#10b981";
+                      e.currentTarget.style.transform = "scale(1.05)";
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.borderColor = "#e5e7eb";
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+                    }}
+                  >
+                    💾
+                  </button>
                   <button
                     onClick={() => setBlocks(blocks.filter(b => b.id !== block.id))}
                     style={{
@@ -1709,6 +1657,197 @@ export default function CampaignBuilder() {
             >
               Got it!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Save Block Modal */}
+      {saveBlockModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={closeSaveBlockModal}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 16,
+              padding: "32px",
+              maxWidth: 500,
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              position: "relative",
+              animation: "modalSlideIn 0.3s ease-out",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              <span style={{ fontSize: 32 }}>💾</span>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: "#1e293b",
+                }}
+              >
+                Save Block as New
+              </h2>
+            </div>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#475569",
+                  marginBottom: 6,
+                }}
+              >
+                Brand Name
+              </label>
+              <input
+                type="text"
+                value={saveBlockModal.brandName}
+                onChange={(e) => setSaveBlockModal({...saveBlockModal, brandName: e.target.value})}
+                placeholder="e.g., Delizie Di Calabria"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  color: "#1e293b",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#475569",
+                  marginBottom: 6,
+                }}
+              >
+                Block ID / SKU
+              </label>
+              <input
+                type="text"
+                value={saveBlockModal.blockId}
+                onChange={(e) => setSaveBlockModal({...saveBlockModal, blockId: e.target.value})}
+                placeholder="e.g., TC25"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  color: "#1e293b",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#475569",
+                  marginBottom: 6,
+                }}
+              >
+                Image Filename
+              </label>
+              <input
+                type="text"
+                value={saveBlockModal.imageName}
+                onChange={(e) => setSaveBlockModal({...saveBlockModal, imageName: e.target.value})}
+                placeholder="e.g., TC25.png"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  color: "#1e293b",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={closeSaveBlockModal}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "#f1f5f9",
+                  color: "#64748b",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#e2e8f0";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f1f5f9";
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveBlockAsNew}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#059669";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#10b981";
+                }}
+              >
+                Save Block
+              </button>
+            </div>
           </div>
         </div>
       )}
