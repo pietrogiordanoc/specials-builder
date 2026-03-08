@@ -243,6 +243,84 @@ export default function BlockCard({ block, isEditing, onUpdateImage, onUpdateCon
           />
         </div>
 
+        {/* Right column - Fixed position (SKU, Pack Size, Price) */}
+        <div
+          style={{
+            position: "absolute",
+            right: 8,
+            top: 22,
+            width: 170,
+            textAlign: "right",
+            fontFamily: "Arial, Helvetica, sans-serif",
+          }}
+        >
+          {block.sku && (
+            <div
+              style={{
+                fontSize: "8pt",
+                lineHeight: 1.1,
+                marginBottom: 4,
+                color: "#222",
+                textAlign: "right",
+              }}
+            >
+              {block.sku}
+            </div>
+          )}
+
+          {(block.packSize || isEditing) && (
+            <div
+              contentEditable={isEditing && onUpdateField !== undefined}
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                if (isEditing && onUpdateField) {
+                  const text = e.currentTarget.textContent || "";
+                  const packSize = text.replace("Pack Size ", "");
+                  onUpdateField("packSize", packSize);
+                }
+              }}
+              style={{
+                fontSize: "8.5pt",
+                fontWeight: 700,
+                lineHeight: 1.15,
+                color: "#111",
+                outline: isEditing ? "1px dashed #ccc" : "none",
+                padding: isEditing ? "2px 4px" : "0",
+                cursor: isEditing ? "text" : "default",
+                textAlign: "right",
+              }}
+            >
+              Pack Size {block.packSize || (isEditing ? "..." : "")}
+            </div>
+          )}
+
+          {(block.price || isEditing) && (
+            <div
+              contentEditable={isEditing && onUpdateField !== undefined}
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                if (isEditing && onUpdateField) {
+                  onUpdateField("price", e.currentTarget.textContent || "");
+                }
+              }}
+              style={{
+                fontSize: "8.5pt",
+                fontWeight: 700,
+                lineHeight: 1.15,
+                color: "#d32020",
+                marginTop: 3,
+                outline: isEditing ? "1px dashed #ccc" : "none",
+                padding: isEditing ? "2px 4px" : "0",
+                cursor: isEditing ? "text" : "default",
+                textAlign: "right",
+              }}
+            >
+              {block.price || (isEditing ? "Click to add price..." : "")}
+            </div>
+          )}
+        </div>
+
+        {/* Content area - Draggable */}
         <div
           onMouseDown={isEditing && onUpdateContent ? handleContentMouseDown : undefined}
           style={{
@@ -259,171 +337,98 @@ export default function BlockCard({ block, isEditing, onUpdateImage, onUpdateCon
         >
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 170px",
-              columnGap: 18,
-              alignItems: "start",
+              position: "relative",
+              paddingRight: 188,
             }}
           >
-            <div style={{ position: "relative" }}>
-              <div
-                style={{
-                  display: "inline-block",
-                  background: "#e1251b",
-                  color: "#fff",
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  padding: "4px 9px 3px 9px",
-                  borderRadius: 10,
-                  marginBottom: 8,
-                  ...(block.newBadgePosition === "right" && {
-                    position: "absolute",
-                    right: 0,
-                    top: 0,
-                  }),
-                }}
-              >
-                NEW
-              </div>
+            <div
+              style={{
+                display: "inline-block",
+                background: "#e1251b",
+                color: "#fff",
+                fontSize: "10px",
+                fontWeight: 700,
+                lineHeight: 1,
+                padding: "4px 9px 3px 9px",
+                borderRadius: 10,
+                marginBottom: 8,
+                ...(block.newBadgePosition === "right" && {
+                  position: "absolute",
+                  right: 188,
+                  top: 0,
+                }),
+              }}
+            >
+              NEW
+            </div>
 
+            <div
+              contentEditable={isEditing && onUpdateField !== undefined}
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                if (isEditing && onUpdateField) {
+                  onUpdateField("title", e.currentTarget.textContent || "");
+                }
+              }}
+              style={{
+                fontFamily: "Arial, Helvetica, sans-serif",
+                fontWeight: 700,
+                fontSize: "9.624pt",
+                lineHeight: 1.15,
+                marginBottom: 6,
+                outline: isEditing ? "1px dashed #ccc" : "none",
+                padding: isEditing ? "2px 4px" : "0",
+                cursor: isEditing ? "text" : "default",
+              }}
+            >
+              {block.title}
+            </div>
+          </div>
+
+          {(block.description || isEditing) && (
+            <div style={{ position: "relative", marginTop: 6, paddingRight: 188 }}>
               <div
                 contentEditable={isEditing && onUpdateField !== undefined}
                 suppressContentEditableWarning
                 onBlur={(e) => {
                   if (isEditing && onUpdateField) {
-                    onUpdateField("title", e.currentTarget.textContent || "");
+                    onUpdateField("description", e.currentTarget.textContent || "");
                   }
                 }}
                 style={{
                   fontFamily: "Arial, Helvetica, sans-serif",
-                  fontWeight: 700,
-                  fontSize: "9.624pt",
-                  lineHeight: 1.15,
-                  marginBottom: 6,
+                  fontWeight: 400,
+                  fontSize: "8pt",
+                  lineHeight: 1.35,
+                  color: "#333",
+                  width: block.descriptionWidth ?? 510,
                   outline: isEditing ? "1px dashed #ccc" : "none",
                   padding: isEditing ? "2px 4px" : "0",
                   cursor: isEditing ? "text" : "default",
+                  minHeight: isEditing && !block.description ? "20px" : "auto",
                 }}
               >
-                {block.title}
+                {block.description || (isEditing ? "Click to add description..." : "")}
               </div>
-
-              {(block.description || isEditing) && (
-                <div style={{ position: "relative", width: "fit-content" }}>
-                  <div
-                    contentEditable={isEditing && onUpdateField !== undefined}
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      if (isEditing && onUpdateField) {
-                        onUpdateField("description", e.currentTarget.textContent || "");
-                      }
-                    }}
-                    style={{
-                      fontFamily: "Arial, Helvetica, sans-serif",
-                      fontWeight: 400,
-                      fontSize: "8pt",
-                      lineHeight: 1.35,
-                      color: "#333",
-                      maxWidth: block.descriptionWidth ?? 510,
-                      outline: isEditing ? "1px dashed #ccc" : "none",
-                      padding: isEditing ? "2px 4px" : "0",
-                      cursor: isEditing ? "text" : "default",
-                      minHeight: isEditing && !block.description ? "20px" : "auto",
-                    }}
-                  >
-                    {block.description || (isEditing ? "Click to add description..." : "")}
-                  </div>
-                  {isEditing && onUpdateDescriptionWidth && (
-                    <div
-                      onMouseDown={handleDescriptionWidthMouseDown}
-                      style={{
-                        position: "absolute",
-                        right: -4,
-                        top: 0,
-                        bottom: 0,
-                        width: 8,
-                        cursor: "ew-resize",
-                        background: isDraggingDescriptionWidth ? "rgba(76, 175, 80, 0.3)" : "transparent",
-                        borderRight: isDraggingDescriptionWidth ? "2px solid #4CAF50" : "2px solid transparent",
-                        zIndex: 100,
-                        pointerEvents: "auto",
-                      }}
-                    />
-                  )}
-                </div>
+              {isEditing && onUpdateDescriptionWidth && (
+                <div
+                  onMouseDown={handleDescriptionWidthMouseDown}
+                  style={{
+                    position: "absolute",
+                    right: 188,
+                    top: 0,
+                    bottom: 0,
+                    width: 12,
+                    cursor: "ew-resize",
+                    background: isDraggingDescriptionWidth ? "rgba(76, 175, 80, 0.3)" : "transparent",
+                    borderRight: isDraggingDescriptionWidth ? "2px solid #4CAF50" : "none",
+                    zIndex: 100,
+                    pointerEvents: "auto",
+                  }}
+                />
               )}
             </div>
-
-            <div
-              style={{
-                textAlign: "right",
-                fontFamily: "Arial, Helvetica, sans-serif",
-              }}
-            >
-              {block.sku && (
-                <div
-                  style={{
-                    fontSize: "8pt",
-                    lineHeight: 1.1,
-                    marginBottom: 4,
-                    color: "#222",
-                  }}
-                >
-                  {block.sku}
-                </div>
-              )}
-
-              {(block.packSize || isEditing) && (
-                <div
-                  contentEditable={isEditing && onUpdateField !== undefined}
-                  suppressContentEditableWarning
-                  onBlur={(e) => {
-                    if (isEditing && onUpdateField) {
-                      const text = e.currentTarget.textContent || "";
-                      const packSize = text.replace("Pack Size ", "");
-                      onUpdateField("packSize", packSize);
-                    }
-                  }}
-                  style={{
-                    fontSize: "8.5pt",
-                    fontWeight: 700,
-                    lineHeight: 1.15,
-                    color: "#111",
-                    outline: isEditing ? "1px dashed #ccc" : "none",
-                    padding: isEditing ? "2px 4px" : "0",
-                    cursor: isEditing ? "text" : "default",
-                  }}
-                >
-                  Pack Size {block.packSize || (isEditing ? "..." : "")}
-                </div>
-              )}
-
-              {(block.price || isEditing) && (
-                <div
-                  contentEditable={isEditing && onUpdateField !== undefined}
-                  suppressContentEditableWarning
-                  onBlur={(e) => {
-                    if (isEditing && onUpdateField) {
-                      onUpdateField("price", e.currentTarget.textContent || "");
-                    }
-                  }}
-                  style={{
-                    fontSize: "8.5pt",
-                    fontWeight: 700,
-                    lineHeight: 1.15,
-                    color: "#d32020",
-                    marginTop: 3,
-                    outline: isEditing ? "1px dashed #ccc" : "none",
-                    padding: isEditing ? "2px 4px" : "0",
-                    cursor: isEditing ? "text" : "default",
-                  }}
-                >
-                  {block.price || (isEditing ? "Click to add price..." : "")}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {isEditing && onUpdateHeight && (

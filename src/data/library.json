@@ -4,11 +4,11 @@
       "id": "delizie",
       "name": "Delizie Di Calabria",
       "blockFiles": [
-        "delizie-di-calabria/banner-01.json",
-        "delizie-di-calabria/TC25.json",
-        "delizie-di-calabria/TC26.json",
-        "delizie-di-calabria/TC28.json",
-        "delizie-di-calabria/TC29.json"
+        "Delizie Di Calabria/banner-01.json",
+        "Delizie Di Calabria/TC25.json",
+        "Delizie Di Calabria/TC26.json",
+        "Delizie Di Calabria/TC28.json",
+        "Delizie Di Calabria/TC29.json"
       ]
     }
   ]

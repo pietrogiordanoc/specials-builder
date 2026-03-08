@@ -32,8 +32,8 @@ async function loadBlock(blockPath: string): Promise<Block | null> {
   }
   
   try {
-    console.log(`Loading block from: /data/blocks/${blockPath}`);
-    const response = await fetch(`/data/blocks/${blockPath}`);
+    console.log(`Loading block from: /_BRANDS/${blockPath}`);
+    const response = await fetch(`/_BRANDS/${blockPath}`);
     if (!response.ok) throw new Error(`Failed to load block: ${blockPath}`);
     const block: Block = await response.json();
     console.log(`Loaded block:`, block.id, block);
@@ -166,6 +166,67 @@ export default function CampaignBuilder() {
     link.download = `${safeName}.json`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportAllBlocks = () => {
+    if (blocks.length === 0) {
+      alert("No blocks to export");
+      return;
+    }
+
+    // Group blocks by their original ID to avoid duplicates
+    const uniqueBlocks = new Map<string, Block>();
+    blocks.forEach(block => {
+      // Use SKU as the key to deduplicate
+      const key = block.sku || block.id;
+      if (!uniqueBlocks.has(key)) {
+        uniqueBlocks.set(key, block);
+      }
+    });
+
+    // Export each unique block as a separate JSON file
+    uniqueBlocks.forEach((block, originalId) => {
+      // Create a clean copy with the original ID
+      const blockData = {
+        id: originalId,
+        title: block.title,
+        sku: block.sku,
+        price: block.price,
+        packSize: block.packSize,
+        description: block.description,
+        bannerImage: block.bannerImage,
+        imageSrc: block.imageSrc,
+        imageOffsetY: block.imageOffsetY,
+        imageOffsetX: block.imageOffsetX,
+        imageScale: block.imageScale,
+        newBadgePosition: block.newBadgePosition,
+        contentOffsetX: block.contentOffsetX,
+        contentOffsetY: block.contentOffsetY,
+        blockSpacing: block.blockSpacing,
+        blockHeight: block.blockHeight,
+        descriptionWidth: block.descriptionWidth,
+        template: block.template,
+        visible: block.visible,
+      };
+
+      // Remove undefined values
+      Object.keys(blockData).forEach(key => {
+        if (blockData[key as keyof typeof blockData] === undefined) {
+          delete blockData[key as keyof typeof blockData];
+        }
+      });
+
+      const dataStr = JSON.stringify(blockData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${originalId}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    alert(`Exported ${uniqueBlocks.size} unique block(s). Replace the files in public/_BRANDS/[Brand Name]/blocks/ folder.`);
   };
 
   const importCampaign = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -586,7 +647,41 @@ export default function CampaignBuilder() {
               }}
             >
               <span style={{ fontSize: 16 }}>💾</span>
-              <span>Export to File</span>
+              <span>Export Campaign</span>
+            </button>
+
+            <button
+              onClick={exportAllBlocks}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                background: "#f59e0b",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "all 0.2s",
+                boxShadow: "0 2px 8px rgba(245, 158, 11, 0.25)",
+              }}
+              title="Download all block configurations as JSON files"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#d97706";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#f59e0b";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(245, 158, 11, 0.25)";
+              }}
+            >
+              <span style={{ fontSize: 16 }}>📦</span>
+              <span>Export All Blocks</span>
             </button>
             
             <button

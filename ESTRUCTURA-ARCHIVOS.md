@@ -4,47 +4,48 @@
 
 El sistema ahora funciona como una **base de datos JSON** donde:
 - ✅ Cada bloque es un archivo JSON individual
-- ✅ Las imágenes están organizadas por marca
+- ✅ Todo está organizado por marca en una sola carpeta
 - ✅ Las campañas guardan solo IDs (referencias), no contenido completo
 - ✅ JSON de campañas es ligero y rápido
+- ✅ Fácil de exportar y mover entre PCs
 
 ---
 
-## 📁 Estructura de Carpetas
+## 📁 Estructura de Carpetas (Nueva Organización)
 
-### Imágenes (public/images/)
+### Todo por Marca (_BRANDS/)
 ```
-public/images/
-└── delizie-di-calabria/        ← Una carpeta por marca
-    ├── TC25.png                 ← Imagen del producto
+_BRANDS/                         ← En la raíz del proyecto
+└── Delizie Di Calabria/         ← Una carpeta por marca
+    ├── banner-01.json           ← Archivos JSON de bloques
+    ├── TC25.json
+    ├── TC26.json
+    ├── TC28.json
+    ├── TC29.json
+    ├── TC25.png                 ← Imágenes de productos
     ├── TC26.png
     ├── TC28.png
     ├── TC29.png
-    └── _banner-01.png           ← Banner (con prefijo _)
+    └── _banner-01.png           ← Banners de marca
+
+public/_BRANDS/                  ← Copia para Vite dev server
+└── [misma estructura]
 ```
 
-**Convención de nombres:**
-- Productos: `[SKU].png` (ej: TC25.png)
-- Banners: `_[nombre].png` (ej: _banner-01.png)
+**✅ Ventajas de esta estructura:**
+- Todo de una marca está junto en una sola carpeta
+- Sin subcarpetas - estructura plana y simple
+- Fácil copiar/pegar archivos exportados
+- Escalable para múltiples marcas
+- Fácil de llevar a otra PC (copias la carpeta completa)
 
-### Bloques (public/data/blocks/)
-```
-public/data/blocks/
-└── delizie-di-calabria/        ← Una carpeta por marca
-    ├── banner-01.json           ← Banner (sin prefijo _)
-    ├── TC25.json                ← Producto
-    ├── TC26.json
-    ├── TC28.json
-    └── TC29.json
-```
-
-**Ejemplo de archivo de bloque** (`TC25.json`):
+### Ejemplo de archivo de bloque (`TC25.json`):
 ```json
 {
   "id": "TC25",
   "title": "Delizie Di Calabria Cherry Peppers With Pecorino Cheese 270 gr.",
   "sku": "TC25",
-  "imageSrc": "/images/delizie-di-calabria/TC25.png",
+  "imageSrc": "/_BRANDS/Delizie Di Calabria/TC25.png",
   "imageOffsetY": -36,
   "imageOffsetX": -20,
   "imageScale": 1.05,
@@ -184,32 +185,30 @@ El navegador guarda automáticamente:
 
 ## ➕ Agregar Nueva Marca
 
-### Paso 1: Crear Carpeta de Imágenes
+### Paso 1: Crear Carpeta de la Marca
 ```bash
-mkdir public/images/nueva-marca
+mkdir "_BRANDS/Nueva Marca"
 ```
 
-### Paso 2: Agregar Imágenes
+### Paso 2: Agregar Archivos
+Todos los archivos van directamente en la carpeta de la marca:
 ```
-public/images/nueva-marca/
+_BRANDS/Nueva Marca/
+├── SKU1.json
+├── SKU2.json
 ├── SKU1.png
 ├── SKU2.png
 └── _banner.png
 ```
 
-### Paso 3: Crear Carpeta de Bloques
-```bash
-mkdir public/data/blocks/nueva-marca
-```
-
-### Paso 4: Crear Archivos JSON
-**Ejemplo:** `public/data/blocks/nueva-marca/SKU1.json`
+### Paso 3: Crear Archivos JSON
+**Ejemplo:** `_BRANDS/Nueva Marca/SKU1.json`
 ```json
 {
   "id": "SKU1",
   "title": "Nombre del Producto",
   "sku": "SKU1",
-  "imageSrc": "/images/nueva-marca/SKU1.png",
+  "imageSrc": "/_BRANDS/Nueva Marca/SKU1.png",
   "imageOffsetY": 0,
   "imageOffsetX": 0,
   "imageScale": 1.0,
@@ -221,7 +220,7 @@ mkdir public/data/blocks/nueva-marca
 }
 ```
 
-### Paso 5: Actualizar library.json
+### Paso 4: Actualizar library.json
 ```json
 {
   "brands": [
@@ -234,13 +233,18 @@ mkdir public/data/blocks/nueva-marca
       "id": "nueva-marca",
       "name": "Nueva Marca",
       "blockFiles": [
-        "nueva-marca/SKU1.json",
-        "nueva-marca/SKU2.json",
-        "nueva-marca/banner.json"
+        "Nueva Marca/SKU1.json",
+        "Nueva Marca/SKU2.json",
+        "Nueva Marca/banner.json"
       ]
     }
   ]
 }
+```
+
+### Paso 5: Sincronizar con public/
+```bash
+.\sync-brands.ps1
 ```
 
 ### Paso 6: Reiniciar Servidor
@@ -326,15 +330,17 @@ const blockCache: Map<string, Block> = new Map();
 ### Bloques no aparecen en sidebar
 **Causa:** Archivos JSON no se cargaron correctamente
 **Solución:** 
-1. Verifica que los archivos existen en `public/data/blocks/`
+1. Verifica que los archivos existen en `_BRANDS/[Marca]/`
 2. Verifica que `library.json` tiene las rutas correctas
-3. Abre la consola del navegador para ver errores
+3. Verifica que sincronizaste con `public/_BRANDS/`
+4. Abre la consola del navegador para ver errores
 
 ### Imágenes no se ven
 **Causa:** Ruta incorrecta en el JSON del bloque
 **Solución:**
-- Verifica que `imageSrc` o `bannerImage` apunta a `/images/[marca]/[archivo].png`
-- Verifica que el archivo existe en `public/images/[marca]/`
+- Verifica que `imageSrc` o `bannerImage` apunta a `/_BRANDS/[Marca]/[archivo].png`
+- Verifica que el archivo existe en `_BRANDS/[Marca]/`
+- Ejecuta el script de sincronización: `.\sync-brands.ps1`
 
 ### Campaña importada aparece vacía
 **Causa:** blockCache aún no tiene los bloques cargados
