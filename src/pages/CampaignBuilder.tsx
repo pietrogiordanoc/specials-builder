@@ -74,7 +74,7 @@ export default function CampaignBuilder() {
   const campaignRef = useRef<HTMLDivElement>(null);
   const [libraryLoaded, setLibraryLoaded] = useState(false);
   const [modalContent, setModalContent] = useState<{title: string; message: string; type: 'success' | 'warning' | 'error' | 'info'} | null>(null);
-  const [saveBlockModal, setSaveBlockModal] = useState<{block: Block; brandName: string; blockId: string; imageName: string} | null>(null);
+  const [saveBlockModal, setSaveBlockModal] = useState<{block: Block; brandName: string; blockId: string; imageName: string; imageFile: File | null} | null>(null);
 
   const showModal = (title: string, message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
     setModalContent({ title, message, type });
@@ -96,6 +96,7 @@ export default function CampaignBuilder() {
       brandName: existingBrand,
       blockId: existingId,
       imageName: existingImage,
+      imageFile: null,
     });
   };
 
@@ -103,46 +104,83 @@ export default function CampaignBuilder() {
     setSaveBlockModal(null);
   };
 
-  const saveBlockAsNew = () => {
+  const saveBlockAsNew = async () => {
     if (!saveBlockModal) return;
     
-    const { block, brandName, blockId, imageName } = saveBlockModal;
+    const { block, brandName, blockId, imageName, imageFile } = saveBlockModal;
     
-    // Create clean block data
-    const newBlock = {
-      id: blockId,
-      title: block.title,
-      sku: blockId,
-      imageSrc: `/_BRANDS/${brandName}/${imageName}`,
-      imageOffsetX: block.imageOffsetX || 0,
-      imageOffsetY: block.imageOffsetY || 0,
-      imageScale: block.imageScale || 1,
-      price: block.price || '$0.00',
-      packSize: block.packSize || '',
-      description: block.description || '',
-      template: block.template || 'zig_product',
-      visible: true,
-    };
-    
-    // Export as JSON
-    const dataStr = JSON.stringify(newBlock, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${blockId}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    closeSaveBlockModal();
-    
-    setTimeout(() => {
+    try {
+      // Upload image first if provided
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        formData.append('brandName', brandName);
+        
+        const imageResponse = await fetch('http://localhost:3001/api/images', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!imageResponse.ok) {
+          throw new Error('Failed to upload image');
+        }
+        
+        console.log('Image uploaded successfully');
+      }
+      
+      // Create clean block data
+      const blockData = {
+        id: blockId,
+        title: block.title,
+        sku: blockId,
+        imageSrc: `/_BRANDS/${brandName}/${imageName}`,
+        imageOffsetX: block.imageOffsetX || 0,
+        imageOffsetY: block.imageOffsetY || 0,
+        imageScale: block.imageScale || 1,
+        price: block.price || '$0.00',
+        packSize: block.packSize || '',
+        description: block.description || '',
+        template: block.template || 'zig_product',
+        visible: true,
+      };
+      
+      // Send block data to backend API
+      const response = await fetch('http://localhost:3001/api/blocks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          brandName,
+          blockId,
+          blockData,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save block');
+      }
+      
+      const result = await response.json();
+      console.log('Block saved:', result);
+      
+      closeSaveBlockModal();
+      
+      setTimeout(() => {
+        showModal(
+          'Block Saved! 💾',
+          `Block "${blockId}" saved successfully to _BRANDS/${brandName}/!\n\n${imageFile ? '✅ Image uploaded\n' : '⚠️ Don\'t forget to add the image manually\n'}✅ library.json updated automatically\n\nReload the page (F5) to see it in the library.`,
+          'success'
+        );
+      }, 300);
+    } catch (error) {
+      console.error('Error saving block:', error);
       showModal(
-        'Block Saved! 💾',
-        `File: ${blockId}.json\n\nNext steps:\n\n1. Move ${blockId}.json to:\n   _BRANDS/${brandName}/\n\n2. Add image ${imageName} to same folder\n\n3. Update src/data/library.json:\n   Add "${brandName}/${blockId}.json" to brand's blockFiles\n\n4. Reload browser (F5)`,
-        'success'
+        'Save Error',
+        `Could not save block.\n\nError: ${error}\n\nMake sure the backend server is running (npm run dev).`,
+        'error'
       );
-    }, 300);
+    }
   };
 
   // Load library blocks from JSON files on mount
@@ -1771,7 +1809,7 @@ export default function CampaignBuilder() {
               />
             </div>
 
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 20 }}>
               <label
                 style={{
                   display: "block",
@@ -1798,6 +1836,57 @@ export default function CampaignBuilder() {
                   boxSizing: "border-box",
                 }}
               />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#475569",
+                  marginBottom: 6,
+                }}
+              >
+                Upload Image (optional)
+              </label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setSaveBlockModal({
+                      ...saveBlockModal, 
+                      imageFile: file,
+                      imageName: file.name
+                    });
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  color: "#1e293b",
+                  boxSizing: "border-box",
+                  cursor: "pointer",
+                }}
+              />
+              {saveBlockModal.imageFile && (
+                <div style={{
+                  marginTop: 8,
+                  padding: 8,
+                  background: "#f0fdf4",
+                  border: "1px solid #86efac",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: "#166534",
+                }}>
+                  ✅ {saveBlockModal.imageFile.name} selected
+                </div>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
