@@ -11,13 +11,12 @@ Esta carpeta contiene **todo** organizado por marca en un solo lugar.
 ```
 _BRANDS/
 └── [Nombre de Marca]/
-    ├── blocks/          ← Archivos JSON de configuración
-    │   └── *.json
-    ├── images/          ← Imágenes de productos
-    │   └── *.png
-    └── banners/         ← Imágenes de banners
-        └── *.png
+    ├── *.json         ← Archivos JSON de configuración
+    ├── *.png          ← Imágenes de productos
+    └── _banner-*.png  ← Imágenes de banners
 ```
+
+**Estructura simple y plana**: Todo junto en una sola carpeta, sin subcarpetas.
 
 ## ✅ Ventajas
 
@@ -40,38 +39,29 @@ _BRANDS/
 ### 3. **Actualizar Archivos**
    - **Reemplaza los archivos descargados en:**
      ```
-     _BRANDS/[Nombre Marca]/blocks/
+     public/_BRANDS/[Nombre Marca]/
      ```
 
-### 4. **Sincronizar con Public**
-   - **Copia la carpeta actualizada:**
-     ```powershell
-     Copy-Item "_BRANDS" "public\_BRANDS" -Recurse -Force
-     ```
-   - O simplemente copia la carpeta de la marca específica
-
-### 5. **Listo!**
+### 4. **Listo!**
    - Recarga el navegador para ver cambios
    - Tus ediciones están guardadas
 
 ## 📝 Cómo agregar una nueva marca
 
-1. **Crea la estructura:**
+1. **Crea la carpeta:**
    ```bash
-   mkdir "_BRANDS/Nueva Marca/blocks"
-   mkdir "_BRANDS/Nueva Marca/images"
-   mkdir "_BRANDS/Nueva Marca/banners"
+   mkdir "_BRANDS/Nueva Marca"
    ```
 
 2. **Agrega tus archivos:**
-   - Coloca los JSON en `blocks/`
-   - Coloca las imágenes de productos en `images/`
-   - Coloca los banners en `banners/`
+   - Coloca todos los JSON directamente en `Nueva Marca/`
+   - Coloca todas las imágenes directamente en `Nueva Marca/`
+   - Los banners con prefijo `_banner-*.png`
 
 3. **Actualiza las rutas en los JSON:**
    ```json
    {
-     "imageSrc": "/_BRANDS/Nueva Marca/images/producto.png"
+     "imageSrc": "/_BRANDS/Nueva Marca/producto.png"
    }
    ```
 
@@ -81,22 +71,20 @@ _BRANDS/
      "id": "nueva-marca",
      "name": "Nueva Marca",
      "blockFiles": [
-       "Nueva Marca/blocks/producto1.json",
-       "Nueva Marca/blocks/producto2.json"
+       "Nueva Marca/producto1.json",
+       "Nueva Marca/producto2.json"
      ]
    }
    ```
 
-5. **Sincroniza con public:**
-   ```powershell
-   Copy-Item "_BRANDS" "public\_BRANDS" -Recurse -Force
-   ```
+5. **Recarga el navegador** para ver la nueva marca en la librería.
 
 ## 💾 Para llevar a otra PC
 
+Simplemente copia esta carpeta:
+
 Simplemente copia estas carpetas:
-- `_BRANDS/` (todo tu contenido)
-- `public/_BRANDS/` (ya sincronizado)
+- `public/_BRANDS/` (todo tu contenido)
 - `src/data/library.json`
 
 ¡Y listo! Todo funcionará igual en la otra PC.

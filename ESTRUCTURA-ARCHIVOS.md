@@ -15,7 +15,7 @@ El sistema ahora funciona como una **base de datos JSON** donde:
 
 ### Todo por Marca (_BRANDS/)
 ```
-_BRANDS/                         ← En la raíz del proyecto
+public/_BRANDS/
 └── Delizie Di Calabria/         ← Una carpeta por marca
     ├── banner-01.json           ← Archivos JSON de bloques
     ├── TC25.json
@@ -27,17 +27,14 @@ _BRANDS/                         ← En la raíz del proyecto
     ├── TC28.png
     ├── TC29.png
     └── _banner-01.png           ← Banners de marca
-
-public/_BRANDS/                  ← Copia para Vite dev server
-└── [misma estructura]
 ```
 
 **✅ Ventajas de esta estructura:**
 - Todo de una marca está junto en una sola carpeta
 - Sin subcarpetas - estructura plana y simple
-- Fácil copiar/pegar archivos exportados
+- Fácil copiar/pegar archivos exportados directamente aquí
 - Escalable para múltiples marcas
-- Fácil de llevar a otra PC (copias la carpeta completa)
+- Sin sincronización - trabaja directamente en public/
 
 ### Ejemplo de archivo de bloque (`TC25.json`):
 ```json
@@ -187,13 +184,13 @@ El navegador guarda automáticamente:
 
 ### Paso 1: Crear Carpeta de la Marca
 ```bash
-mkdir "_BRANDS/Nueva Marca"
+mkdir "public\_BRANDS\Nueva Marca"
 ```
 
 ### Paso 2: Agregar Archivos
 Todos los archivos van directamente en la carpeta de la marca:
 ```
-_BRANDS/Nueva Marca/
+public/_BRANDS/Nueva Marca/
 ├── SKU1.json
 ├── SKU2.json
 ├── SKU1.png
@@ -202,7 +199,7 @@ _BRANDS/Nueva Marca/
 ```
 
 ### Paso 3: Crear Archivos JSON
-**Ejemplo:** `_BRANDS/Nueva Marca/SKU1.json`
+**Ejemplo:** `public/_BRANDS/Nueva Marca/SKU1.json`
 ```json
 {
   "id": "SKU1",
@@ -330,17 +327,15 @@ const blockCache: Map<string, Block> = new Map();
 ### Bloques no aparecen en sidebar
 **Causa:** Archivos JSON no se cargaron correctamente
 **Solución:** 
-1. Verifica que los archivos existen en `_BRANDS/[Marca]/`
+1. Verifica que los archivos existen en `public/_BRANDS/[Marca]/`
 2. Verifica que `library.json` tiene las rutas correctas
-3. Verifica que sincronizaste con `public/_BRANDS/`
-4. Abre la consola del navegador para ver errores
+3. Abre la consola del navegador para ver errores
 
 ### Imágenes no se ven
 **Causa:** Ruta incorrecta en el JSON del bloque
 **Solución:**
 - Verifica que `imageSrc` o `bannerImage` apunta a `/_BRANDS/[Marca]/[archivo].png`
-- Verifica que el archivo existe en `_BRANDS/[Marca]/`
-- Ejecuta el script de sincronización: `.\sync-brands.ps1`
+- Verifica que el archivo existe en `public/_BRANDS/[Marca]/`
 
 ### Campaña importada aparece vacía
 **Causa:** blockCache aún no tiene los bloques cargados
