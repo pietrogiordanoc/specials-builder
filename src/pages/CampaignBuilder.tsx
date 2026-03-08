@@ -74,6 +74,15 @@ export default function CampaignBuilder() {
   const campaignRef = useRef<HTMLDivElement>(null);
   const [savedCampaigns, setSavedCampaigns] = useState<string[]>([]);
   const [libraryLoaded, setLibraryLoaded] = useState(false);
+  const [modalContent, setModalContent] = useState<{title: string; message: string; type: 'success' | 'warning' | 'error' | 'info'} | null>(null);
+
+  const showModal = (title: string, message: string, type: 'success' | 'warning' | 'error' | 'info' = 'info') => {
+    setModalContent({ title, message, type });
+  };
+
+  const closeModal = () => {
+    setModalContent(null);
+  };
 
   // Load library blocks from JSON files on mount
   useEffect(() => {
@@ -178,13 +187,17 @@ export default function CampaignBuilder() {
     
     // Show instructions after download
     setTimeout(() => {
-      alert(`Campaign exported! 📁\n\nTo save permanently:\n1. Move ${safeName}.json to _CAMPAIGNS/ folder\n2. Add "${safeName}.json" to _CAMPAIGNS/campaigns.json\n3. Reload to see it in "Saved Campaigns" dropdown`);
+      showModal(
+        'Campaign Exported! 📁',
+        `File downloaded: ${safeName}.json\n\nTo save permanently:\n\n1. Move ${safeName}.json to _CAMPAIGNS/ folder\n\n2. Open _CAMPAIGNS/campaigns.json and add:\n   "${safeName}.json"\n\n3. Reload browser to see it in dropdown`,
+        'success'
+      );
     }, 500);
   };
 
   const exportAllBlocks = () => {
     if (blocks.length === 0) {
-      alert("No blocks to export");
+      showModal('No Blocks', 'Add some blocks to the campaign first!', 'warning');
       return;
     }
 
@@ -240,7 +253,11 @@ export default function CampaignBuilder() {
       URL.revokeObjectURL(url);
     });
 
-    alert(`Exported ${uniqueBlocks.size} unique block(s). Replace the files in public/_BRANDS/[Brand Name]/blocks/ folder.`);
+    showModal(
+      'Blocks Exported! 📦',
+      `Exported ${uniqueBlocks.size} unique block(s).\n\nReplace the downloaded files in:\n_BRANDS/[Brand Name]/ folder`,
+      'success'
+    );
   };
 
   const importCampaign = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +265,11 @@ export default function CampaignBuilder() {
     if (!file) return;
 
     if (!libraryLoaded) {
-      alert('⏳ Please wait... Library is still loading.\n\nTry again in a few seconds.');
+      showModal(
+        'Please Wait',
+        'Library is still loading...\n\nTry again in a few seconds.',
+        'info'
+      );
       event.target.value = '';
       return;
     }
@@ -280,14 +301,22 @@ export default function CampaignBuilder() {
           }
           
           if (notFound.length > 0) {
-            alert(`⚠️ Some blocks were not found: ${notFound.join(', ')}\n\nMake sure all blocks are loaded in the library.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`);
+            showModal(
+              'Some Blocks Missing',
+              `Missing blocks: ${notFound.join(', ')}\n\nMake sure all blocks are in _BRANDS/ folder.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`,
+              'warning'
+            );
           }
           
           setBlocks(loadedBlocks);
           if (imported.name) setCampaignName(imported.name);
           
           if (loadedBlocks.length > 0) {
-            alert(`✅ Campaign loaded successfully!\n\n${loadedBlocks.length} blocks imported.`);
+            showModal(
+              'Campaign Loaded!',
+              `Successfully imported ${loadedBlocks.length} blocks.`,
+              'success'
+            );
           }
         } 
         // Old format with full block objects (backwards compatibility)
@@ -296,7 +325,7 @@ export default function CampaignBuilder() {
         }
       } catch (error) {
         console.error('Import error:', error);
-        alert("Error importing campaign file");
+        showModal('Import Error', 'Could not read campaign file.\n\nMake sure it\'s a valid JSON file.', 'error');
       }
     };
     reader.readAsText(file);
@@ -322,7 +351,11 @@ export default function CampaignBuilder() {
   // Load a specific campaign from _CAMPAIGNS folder
   const loadCampaignFromFolder = async (filename: string) => {
     if (!libraryLoaded) {
-      alert('⏳ Please wait... Library is still loading.\n\nTry again in a few seconds.');
+      showModal(
+        'Please Wait',
+        'Library is still loading...\n\nTry again in a few seconds.',
+        'info'
+      );
       return;
     }
     
@@ -350,19 +383,27 @@ export default function CampaignBuilder() {
         }
         
         if (notFound.length > 0) {
-          alert(`⚠️ Some blocks were not found: ${notFound.join(', ')}\n\nMake sure all blocks are loaded in the library.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`);
+          showModal(
+            'Some Blocks Missing',
+            `Missing blocks: ${notFound.join(', ')}\n\nMake sure all blocks are in _BRANDS/ folder.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`,
+            'warning'
+          );
         }
         
         setBlocks(loadedBlocks);
         if (imported.name) setCampaignName(imported.name);
         
         if (loadedBlocks.length > 0) {
-          alert(`✅ Campaign "${imported.name || filename}" loaded!\n\n${loadedBlocks.length} blocks imported.`);
+          showModal(
+            'Campaign Loaded!',
+            `"${imported.name || filename}"\n\nSuccessfully imported ${loadedBlocks.length} blocks.`,
+            'success'
+          );
         }
       }
     } catch (error) {
       console.error('Load campaign error:', error);
-      alert(`Error loading campaign: ${error}`);
+      showModal('Load Error', `Could not load campaign.\n\nError: ${error}`, 'error');
     }
   };
 
@@ -789,23 +830,53 @@ export default function CampaignBuilder() {
             </button>
 
             {/* Load Saved Campaign */}
-            {savedCampaigns.length > 0 && (
-              <div style={{ width: "100%" }}>
+            <div style={{ width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <label
                   style={{
                     display: "block",
                     fontSize: 12,
                     color: "#64748b",
-                    marginBottom: 6,
                     fontWeight: 500,
                   }}
                 >
                   📁 Saved Campaigns
                 </label>
+                <button
+                  onClick={() => {
+                    loadSavedCampaignsList();
+                    showModal('Refreshed', 'Campaign list reloaded!', 'success');
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    background: "#f1f5f9",
+                    color: "#64748b",
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 11,
+                    fontWeight: 500,
+                    transition: "all 0.2s",
+                  }}
+                  title="Refresh campaign list"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#e2e8f0";
+                    e.currentTarget.style.color = "#475569";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#f1f5f9";
+                    e.currentTarget.style.color = "#64748b";
+                  }}
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+              {savedCampaigns.length > 0 ? (
                 <select
                   onChange={(e) => {
                     if (e.target.value) {
                       loadCampaignFromFolder(e.target.value);
+                      e.target.value = ''; // Reset after loading
                     }
                   }}
                   defaultValue=""
@@ -828,8 +899,23 @@ export default function CampaignBuilder() {
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    background: "#f8fafc",
+                    border: "1px dashed #e2e8f0",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    color: "#94a3b8",
+                    textAlign: "center",
+                  }}
+                >
+                  No saved campaigns yet
+                </div>
+              )}
+            </div>
             
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -1531,6 +1617,114 @@ export default function CampaignBuilder() {
           })}
         </div>
       </div>
+
+      {/* Custom Modal */}
+      {modalContent && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={closeModal}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: 16,
+              padding: "32px",
+              maxWidth: 500,
+              width: "90%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              position: "relative",
+              animation: "modalSlideIn 0.3s ease-out",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 20,
+              }}
+            >
+              <span style={{ fontSize: 32 }}>
+                {modalContent.type === 'success' && '✅'}
+                {modalContent.type === 'warning' && '⚠️'}
+                {modalContent.type === 'error' && '❌'}
+                {modalContent.type === 'info' && 'ℹ️'}
+              </span>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: "#1e293b",
+                }}
+              >
+                {modalContent.title}
+              </h2>
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 14,
+                lineHeight: 1.6,
+                color: "#64748b",
+                whiteSpace: "pre-line",
+              }}
+            >
+              {modalContent.message}
+            </p>
+            <button
+              onClick={closeModal}
+              style={{
+                marginTop: 24,
+                width: "100%",
+                padding: "12px",
+                background: "#14b8a6",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontSize: 14,
+                fontWeight: 600,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#0d9488";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#14b8a6";
+              }}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
