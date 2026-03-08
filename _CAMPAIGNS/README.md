@@ -11,6 +11,7 @@ Esta carpeta contiene tus campañas guardadas.
 ### 1. **Exportar Campaña**
    - En Campaign Builder, haz click en **"💾 Export Campaign"**
    - Se descargará un archivo JSON (ej: `sotw-2026-03-08.json`)
+   - Verás un modal con instrucciones
 
 ### 2. **Guardar Campaña**
    - Copia el archivo descargado a `_CAMPAIGNS/`
@@ -28,9 +29,12 @@ Esta carpeta contiene tus campañas guardadas.
    }
    ```
 
-### 4. **Cargar Campaña**
-   - En Campaign Builder, usa el dropdown **"📁 Saved Campaigns"**
-   - Selecciona tu campaña
+### 4. **Recargar Lista**
+   - En Campaign Builder, haz click en **"🔄 Refresh"** junto a "Saved Campaigns"
+   - ¡Tu campaña aparecerá en el dropdown!
+
+### 5. **Cargar Campaña**
+   - Selecciona tu campaña del dropdown **"📁 Saved Campaigns"**
    - ¡Listo! Los bloques se cargarán automáticamente
 
 ## 📝 Formato de Campaña
