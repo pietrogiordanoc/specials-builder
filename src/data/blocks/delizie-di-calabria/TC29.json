@@ -1,0 +1,14 @@
+{
+  "id": "TC29",
+  "title": "Delizie Di Calabria Pepperoni Cruschii 440 gr.",
+  "sku": "TC29",
+  "imageSrc": "/images/delizie-di-calabria/TC29.png",
+  "imageOffsetY": 2,
+  "imageOffsetX": 15,
+  "imageScale": 1.12,
+  "price": "$10.00/ea. $60.00/cs.",
+  "packSize": "6/1.41 oz.",
+  "description": "Are a quintessential expression of authentic Southern Italian gastronomy, presenting sun-dried Calabrian peppers that are intensely coloured and richly flavoured, prized for their smoky, slightly sweet profile and crisp-to-tender texture; celebrated in Calabria for their versatility, these crushed peppers bring bold warmth and Mediterranean depth to pizzas, pastas, bruschette and sauces, infusing each dish with the rustic essence of Calabria's vibrant culinary heritage.",
+  "template": "zig_product",
+  "visible": true
+}

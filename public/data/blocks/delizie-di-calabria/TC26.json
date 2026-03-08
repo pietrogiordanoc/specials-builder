@@ -1,0 +1,14 @@
+{
+  "id": "TC26",
+  "title": "Delizie Di Calabria Pesto Calabrese 180 gr.",
+  "sku": "TC26",
+  "imageSrc": "/images/delizie-di-calabria/TC26.png",
+  "imageOffsetY": -18,
+  "imageOffsetX": -10,
+  "imageScale": 0.98,
+  "price": "$4.12/ea. $49.50/cs.",
+  "packSize": "12/6.35 oz.",
+  "description": "Is an artisanal Italian condiment that elegantly captures the sun-drenched spirit of Calabria in a jar: a bold, rustic blending of sun-dried tomatoes, sweet Tropea onion, tangy Pecorino and smoked sheep's ricotta, toasted nuts and a hint of capers and spices in rich extra-virgin olive oil, resulting in a vibrant, creamy pesto that lends depth and Mediterranean warmth to pasta, bruschetta, grilled vegetables or meats while celebrating the rich culinary heritage of Southern Italy.",
+  "template": "zig_product",
+  "visible": true
+}

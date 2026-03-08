@@ -1,0 +1,14 @@
+{
+  "id": "TC28",
+  "title": "Delizie Di Calabria Whole Pickled Red Onions of Tropea Calabria 180 gr.",
+  "sku": "TC28",
+  "imageSrc": "/images/delizie-di-calabria/TC28.png",
+  "imageOffsetY": 8,
+  "imageOffsetX": 20,
+  "imageScale": 1.08,
+  "price": "$3.75/ea. $45.00/cs.",
+  "packSize": "12/9.87 oz.",
+  "description": "Is a gourmet Italian delicacy that showcases the celebrated Cipolla Rossa di Tropea Calabria in IGP certified red onion renowned for its naturally sweet, succulent flavor and tender texture carefully preserved whole in a traditional sweet-and-sour brine; this elegant antipasto or condiment embodies the essence of Calabria's culinary heritage, bringing a bright, tangy accent to salads, pizzas, charcuterie boards or grilled dishes while offering the true taste of sun-ripened Mediterranean produce.",
+  "template": "zig_product",
+  "visible": true
+}

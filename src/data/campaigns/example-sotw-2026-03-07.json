@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1",
+    "title": "Delizie di Calabria",
+    "bannerImage": "/images/banners/delizie-di-calabria-01.png",
+    "template": "category_banner",
+    "visible": true
+  },
+  {
+    "id": "2",
+    "title": "Delizie Di Calabria Cherry Peppers With Pecorino Cheese 270 gr.",
+    "sku": "TC25",
+    "imageSrc": "/images/products/tc25.png",
+    "imageOffsetY": -36,
+    "imageOffsetX": -20,
+    "imageScale": 1.05,
+    "price": "$6.50/ea. $78.00/cs.",
+    "packSize": "12/9.87 oz.",
+    "description": "Delizie di Calabria Cherry Peppers with Pecorino Cheese (270 g) pairs plump Calabrian cherry peppers pleasantly mild-hot with a generous core of tangy, sheep's-milk Pecorino...",
+    "template": "zig_product",
+    "visible": true
+  }
+]

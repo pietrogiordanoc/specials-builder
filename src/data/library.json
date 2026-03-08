@@ -1,0 +1,15 @@
+{
+  "brands": [
+    {
+      "id": "delizie",
+      "name": "Delizie Di Calabria",
+      "blockFiles": [
+        "delizie-di-calabria/banner-01.json",
+        "delizie-di-calabria/TC25.json",
+        "delizie-di-calabria/TC26.json",
+        "delizie-di-calabria/TC28.json",
+        "delizie-di-calabria/TC29.json"
+      ]
+    }
+  ]
+}
