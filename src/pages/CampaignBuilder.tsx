@@ -73,6 +73,7 @@ export default function CampaignBuilder() {
   const [drawingSlice, setDrawingSlice] = useState<{startX: number; startY: number; currentX: number; currentY: number} | null>(null);
   const campaignRef = useRef<HTMLDivElement>(null);
   const [savedCampaigns, setSavedCampaigns] = useState<string[]>([]);
+  const [libraryLoaded, setLibraryLoaded] = useState(false);
 
   // Load library blocks from JSON files on mount
   useEffect(() => {
@@ -85,7 +86,9 @@ export default function CampaignBuilder() {
         newLibraryBlocks.set(brand.id, blocks);
       }
       setLibraryBlocks(newLibraryBlocks);
+      setLibraryLoaded(true);
       console.log('Library blocks loaded:', newLibraryBlocks);
+      console.log('Block cache size:', blockCache.size);
     }
     loadLibrary();
   }, []);
@@ -244,33 +247,62 @@ export default function CampaignBuilder() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!libraryLoaded) {
+      alert('⏳ Please wait... Library is still loading.\n\nTry again in a few seconds.');
+      event.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const imported = JSON.parse(e.target?.result as string);
         
+        console.log('Importing campaign:', imported);
+        console.log('Block cache size:', blockCache.size);
+        console.log('Block cache contents:', Array.from(blockCache.entries()).map(([path, block]) => ({ path, id: block.id })));
+        
         // New format with blockIds
         if (imported.blockIds && Array.isArray(imported.blockIds)) {
           // Load blocks from cache by ID
           const loadedBlocks: Block[] = [];
+          const notFound: string[] = [];
+          
           for (const blockId of imported.blockIds) {
             const block = Array.from(blockCache.values()).find(b => b.id === blockId);
             if (block) {
               loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
+              console.log(`Found block ${blockId}`);
+            } else {
+              notFound.push(blockId);
+              console.warn(`Block not found: ${blockId}`);
             }
           }
+          
+          if (notFound.length > 0) {
+            alert(`⚠️ Some blocks were not found: ${notFound.join(', ')}\n\nMake sure all blocks are loaded in the library.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`);
+          }
+          
           setBlocks(loadedBlocks);
           if (imported.name) setCampaignName(imported.name);
+          
+          if (loadedBlocks.length > 0) {
+            alert(`✅ Campaign loaded successfully!\n\n${loadedBlocks.length} blocks imported.`);
+          }
         } 
         // Old format with full block objects (backwards compatibility)
         else if (Array.isArray(imported)) {
           setBlocks(imported);
         }
       } catch (error) {
+        console.error('Import error:', error);
         alert("Error importing campaign file");
       }
     };
     reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
   };
 
   // Load list of saved campaigns from _CAMPAIGNS folder
@@ -289,23 +321,47 @@ export default function CampaignBuilder() {
 
   // Load a specific campaign from _CAMPAIGNS folder
   const loadCampaignFromFolder = async (filename: string) => {
+    if (!libraryLoaded) {
+      alert('⏳ Please wait... Library is still loading.\n\nTry again in a few seconds.');
+      return;
+    }
+    
     try {
       const response = await fetch(`/_CAMPAIGNS/${filename}`);
       if (!response.ok) throw new Error('Campaign not found');
       const imported = await response.json();
       
+      console.log('Loading campaign from folder:', filename);
+      console.log('Campaign data:', imported);
+      
       if (imported.blockIds && Array.isArray(imported.blockIds)) {
         const loadedBlocks: Block[] = [];
+        const notFound: string[] = [];
+        
         for (const blockId of imported.blockIds) {
           const block = Array.from(blockCache.values()).find(b => b.id === blockId);
           if (block) {
             loadedBlocks.push({ ...block, id: `block-${Date.now()}-${Math.random()}` });
+            console.log(`Found block ${blockId}`);
+          } else {
+            notFound.push(blockId);
+            console.warn(`Block not found: ${blockId}`);
           }
         }
+        
+        if (notFound.length > 0) {
+          alert(`⚠️ Some blocks were not found: ${notFound.join(', ')}\n\nMake sure all blocks are loaded in the library.\n\nLoaded ${loadedBlocks.length} of ${imported.blockIds.length} blocks.`);
+        }
+        
         setBlocks(loadedBlocks);
         if (imported.name) setCampaignName(imported.name);
+        
+        if (loadedBlocks.length > 0) {
+          alert(`✅ Campaign "${imported.name || filename}" loaded!\n\n${loadedBlocks.length} blocks imported.`);
+        }
       }
     } catch (error) {
+      console.error('Load campaign error:', error);
       alert(`Error loading campaign: ${error}`);
     }
   };
